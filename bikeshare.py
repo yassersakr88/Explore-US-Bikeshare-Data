@@ -1,10 +1,35 @@
 import time
 import pandas as pd
 import numpy as np
+from tabulate import tabulate
+
 
 CITY_DATA = { 'Chicago': 'chicago.csv',
               'New York City': 'new_york_city.csv',
               'Washington': 'washington.csv' }
+
+
+def check_data_entry(prompt, valid_entries):
+    """
+    Asks user to type some input and verify if the entry typed is valid.
+    Since we have 3 inputs to ask the user in get_filters(), it is easier to write a function.
+    Args:
+        (str) prompt - message to display to the user
+        (list) valid_entries - list of string that should be accepted 
+    Returns:
+        (str) user_input - the user's valid input
+    """
+    try:
+        user_input = str(input(prompt)).lower().title()
+        while user_input not in valid_entries:
+            print("Not an appropriate choice.")
+            print("Try again")
+            user_input = str(input(prompt)).lower().title()
+        return user_input
+            
+    except:
+        print('Seems like there is an issue with your input')
+
 
 def get_filters():
     """
@@ -17,31 +42,21 @@ def get_filters():
     """
     print('Hello! Let\'s explore some US bikeshare data!')
 
-    while True:
-            # get user input for city (chicago, new york city, washington). HINT: Use a while loop to handle invalid inputs
-            city = input('Please choose city to analyze its data (Chicago, New York City, Washington): ').lower().title()
-            if city not in ('Chicago', 'New York City', 'Washington'):
-                print("Not an appropriate choice.")
-            else:
-                break
-    while True:
-        # get user input for month (all, january, february, ... , june)
-        month = input('Please enter month to analyze data (choose from january to june or all for all months): ').lower().title()
-        if month not in ('January', 'February', 'March', 'April', 'May', 'June', 'All'):
-            print("Not an appropriate choice.")
-        else:
-            break
-    while True:
-        # get user input for day of week (all, monday, tuesday, ... sunday)            
-        day = input('Please choose weekday name to analyze data (choose from monday to sunday or all for all weekdays): ').lower().title()
-        if day not in ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'All'):
-            print("Not an appropriate choice.")
-        else:
-            break
-        
-    print('-'*40)
-    print('Data to analyze\n\nCity:\t\t{}\nMonth period:\t{}\nDays period:\t{}\n'.format(city, month, day))
-    print('-'*40)
+    valid_cities = CITY_DATA.keys()
+    cities_prompt = 'Please choose city to analyze its data (Chicago, New York City, Washington): '
+    city = check_data_entry(cities_prompt, valid_cities)
+    
+    valid_months = ['January', 'February', 'March', 'April', 'May', 'June', 'All']
+    months_prompt = 'Please enter month to analyze data (choose from january to june or all for all months): '
+    month = check_data_entry(months_prompt, valid_months)
+    
+    valid_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'All']
+    days_prompt = 'Please choose weekday name to analyze data (choose from monday to sunday or all for all weekdays): '
+    day = check_data_entry(days_prompt, valid_days)
+    
+    print('-'*120)
+    print('\nData to analyze\n\nCity:\t\t{}\nMonth period:\t{}\nDays period:\t{}\n'.format(city, month, day))
+    print('-'*120)
     return city, month, day
 
 
@@ -59,7 +74,8 @@ def load_data(city, month, day):
     
     # load data file into a dataframe
     df = pd.read_csv(CITY_DATA[city])
-    df.rename(columns={'Unnamed: 0':'Trip ID'}, inplace=True)
+    df.rename(columns={'Unnamed: 0':'Trip_id'}, inplace=True)
+    df.set_index('Trip_id', inplace=True)
 
     # convert the Start Time column to datetime
     df['Start Time'] = pd.to_datetime(df['Start Time'])
@@ -67,14 +83,22 @@ def load_data(city, month, day):
     # extract month and day of week from Start Time to create new columns
     df['month'] = df['Start Time'].dt.month_name()
     df['day_of_week'] = df['Start Time'].dt.day_name()
+    #df['day_of_week'] += 1
 
     # filter by month if applicable
     if month != 'All':
+        # use the index of the months list to get the corresponding int
+        #months = ['january', 'february', 'march', 'april', 'may', 'june']
+        #month = months.index(month)+1
+    
         # filter by month to create the new dataframe
         df = df[df['month'] == month.title()]
 
     # filter by day of week if applicable
     if day != 'All':
+        # use the index of the months list to get the corresponding int
+        #days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        #day = days.index(day)+1
         # filter by day of week to create the new dataframe
         df = df[df['day_of_week'] == day.title()]
     
@@ -104,7 +128,8 @@ def time_stats(df):
         pass
 
     print("\nThis took %s seconds." % (time.time() - start_time))
-    print('-'*40)
+    print('-'*120)
+
 
 def station_stats(df):
     """Displays statistics on the most popular stations and trip."""
@@ -122,13 +147,14 @@ def station_stats(df):
         print('Most commonly used end station:\t\t\t\t', popular_end_station)
 
         # display most frequent combination of start station and end station trip
-        popular_freq_comb = ('Start: ' + df['Start Station'] + ',\tEnd: ' + df['End Station']).value_counts().idxmax()
+        df['start_end_comb'] = '(' + df['Start Station'] + ') & (' + df['End Station'] + ')'
+        popular_freq_comb = df['start_end_comb'].value_counts().idxmax()
         print('Most frequent combination of start and end station trip:', popular_freq_comb)
     except KeyError:
         pass
         
     print("\nThis took %s seconds." % (time.time() - start_time))
-    print('-'*40)
+    print('-'*120)
 
 
 def trip_duration_stats(df):
@@ -149,7 +175,7 @@ def trip_duration_stats(df):
         pass
     
     print("\nThis took %s seconds." % (time.time() - start_time))
-    print('-'*40)
+    print('-'*120)
 
 
 def user_stats(df):
@@ -177,7 +203,7 @@ def user_stats(df):
         pass
     
     print("\nThis took %s seconds." % (time.time() - start_time))
-    print('-'*40)
+    print('-'*120)
 
 
 def main():
